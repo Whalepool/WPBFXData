@@ -1,0 +1,5 @@
+pymongo[srv]
+pprint
+coloredlogs
+pyyaml
+pymongo

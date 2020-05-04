@@ -1,0 +1,50 @@
+
+# ZMQ
+MONGO_CONNECTION_STRING: 'mongodb+srv://username:password@host/test?retryWrites=true&w=majority'
+
+MAX_TOP_TICKERS: !!int 20
+
+LOGGING_LEVEL: 'DEBUG'
+LOGGING_FORMAT: '%(asctime)s,%(msecs)03d %(name)s[%(process)d] %(levelname)s [%(funcName)s]  %(filename)s:%(lineno)d :: %(message)s'
+
+LOGGING_FIELD_STYLES: 
+  funcName: 
+    color: 'white'
+  filename: 
+    color: 'green'
+  asctime:
+    color: 'green'
+  hostname: 
+    color: 'magenta'
+  levelname: 
+    color: 'yellow'
+    bold: True
+  name:
+    color: 'blue'
+  programname:
+    color: 'cyan'
+  username:
+    color: 'yellow'
+
+
+LOGGING_LEVEL_STYLES:
+  critical:
+    color: 'red'
+    bold: True
+  debug:
+    color: 'green'
+  error:
+    color: 'red'
+  # info:
+  notice:
+    color: 'magenta'
+  spam:
+    color: 'green'
+    faint: True
+  success: 
+    color: 'green'
+    bold: True
+  verbose:
+    color: 'blue'
+  warning:
+    color: 'yellow'
