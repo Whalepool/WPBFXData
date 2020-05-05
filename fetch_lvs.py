@@ -149,16 +149,16 @@ class FetchLVS():
 
 			self.tickers[t]['fpart'] = prim
 			self.tickers[t]['lpart'] = base 
-			add_to_bases(prim)
-			add_to_bases(base)
-
-			self.tickers[t]['last_price_usd'] = el['last_price'] * self.bases[base]['to_usd']
-			self.tickers[t]['volume_usd'] = el['volume'] * self.tickers[t]['last_price_usd']
 
 			if el['ticker'] in self.margin_tickers:
 				self.tickers[t]['margin'] = True
+				add_to_bases(prim)
+				add_to_bases(base)
+				self.tickers[t]['last_price_usd'] = el['last_price'] * self.bases[base]['to_usd']
+				self.tickers[t]['volume_usd'] = el['volume'] * self.tickers[t]['last_price_usd']
 			else:
 				self.tickers[t]['margin'] = False
+
 
 		if argtickers is not None:
 			self.top_tickers = []
@@ -235,11 +235,8 @@ class FetchLVS():
 		# Get the LVS data for the top tickers
 		for ticker, o in self.tickers.items():
 
-			# Get USD price for fpart (eg: ETH in the ETHBTC) 
-			o['fpart_usd_price'] = self.bases[ o['fpart'] ]['to_usd']
-			o['lpart_usd_price'] = self.bases[ o['lpart'] ]['to_usd']
-
 			prefill = [
+				'fpart_usd_price', 'lpart_usd_price',
 				'longs_total_cnt','longs_lpart_value','longs_usd_value',
 				'longs_funded', 'longs_funded_lpart_value', 'longs_funded_usd', 
 				'shorts_total_cnt', 'shorts_lpart_value', 'shorts_usd_value',
@@ -248,14 +245,17 @@ class FetchLVS():
 			o = { **o, **{v:0 for k, v in enumerate(prefill) } }
 
 			if o['margin'] == False:
-				logger.info('{color}{ticker} has no margin available{end_c}'.format(color=purple, ticker=ticker, end_c=end_c))
+				logger.info('IGNORING: {color}{ticker} has no margin available{end_c}'.format(color=purple, ticker=ticker, end_c=end_c))
 				self.tickers[ticker] = o
 				continue
 			if o['ticker'] not in self.top_tickers:
-				logger.info('{color}{ticker} is not a top ticker{end_c}'.format(color=blue, ticker=ticker, end_c=end_c))
+				logger.info('IGNORING: {color}{ticker} has margin, BUT, is not a top ticker{end_c}'.format(color=blue, ticker=ticker, end_c=end_c))
 				self.tickers[ticker] = o
 				continue 
 
+			# Get USD price for fpart (eg: ETH in the ETHBTC) 
+			o['fpart_usd_price'] = self.bases[ o['fpart'] ]['to_usd']
+			o['lpart_usd_price'] = self.bases[ o['lpart'] ]['to_usd']
 			
 			logger.info('{color}{ticker}  IS a top ticker so collecting LVS Data for it.{end_c}'.format(color=green, ticker=ticker, end_c=end_c))
 			#############################
@@ -268,8 +268,8 @@ class FetchLVS():
 			# Long funding
 			query = "https://api-pub.bitfinex.com/v2/stats1/credits.size.sym:1m:f{}:{}/last".format( o['lpart'],o['ticker'])
 			o['longs_funded']   = round( self.api_request(query)[1] )
-			o['longs_funded_lpart_value']  = round( o['longs_funded'] * o['last_price'] )
-			o['longs_funded_usd']  = round( o['longs_funded'] * o['fpart_usd_price'] )
+			o['longs_funded_fpart_value']  = round( o['longs_funded'] / o['last_price'] )
+			o['longs_funded_usd']  = round( o['longs_funded'] * o['lpart_usd_price'] )
 
 
 			#############################
@@ -290,7 +290,7 @@ class FetchLVS():
 		# Save Tickers
 		logger.info('Inserting {} tickers to mongo'.format(len(self.tickers)))
 		self.db['ticker_data'].insert_many( 
-				[ dict(v) for k,v in self.tickers.items() ], 
+				[ dict(v) for k,v in self.tickers.items() if v['margin'] == True ], 
 				ordered=True 
 			)
 
@@ -304,7 +304,7 @@ class FetchLVS():
 		# Save Bases
 		logger.info('Inserting {} bases to mongo'.format(len(self.bases)))
 		self.db['bases'].insert_many( 
-			[ dict(v) for k,v in self.bases.items() ]
+			[ dict(v) for k,v in self.bases.items() ],
 			ordered=True 
 		)
 
