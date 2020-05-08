@@ -81,9 +81,9 @@ class ChartLVS():
 		pprint(unique_tickers)
 
 		unique_fparts = unique_tickers.groupby("fpart").sum() 
-		unique_fparts = unique_fparts.sort_values('longs_usd_value', ascending=False
-			)
+		unique_fparts = unique_fparts.sort_values('longs_usd_value', ascending=False )
 		unique_fparts = unique_fparts[:10]
+
 		pprint(unique_fparts)
 
 
@@ -97,139 +97,356 @@ class ChartLVS():
 
 
 		logger.info('Making chart')
-		fig = plt.figure(facecolor='black', figsize=(16, 16), dpi=100, constrained_layout=False)
-		plt.suptitle('Bitfinex Margin Usage Analysis by whalepool.io', fontsize=18, fontweight='bold')
+		fig = plt.figure(facecolor='black', figsize=(18, 20), dpi=100, constrained_layout=False)
+		plt.suptitle('Bitfinex Leverage Usage ~ by whalepool.io', fontsize=18, fontweight='bold')
 
 		plot_left = 0.1
 		plot_width = 0.8 
 		bottom = 0.1 
 		height = 0.8
 		# LEFT, BOTTOM, WIDTH, HEIGHT
-		rect0 = [0.15, 0.65, 0.8, 0.3]
-		rect1 = [0.15, 0.05, 0.8, 0.8]
+		rect0 = [0.125, 0.68, 0.805, 0.27]
+		rect1 = [0.01, 0.01, 0.98, 0.5]
 
+		####################################################
+		# Rect 0 
+		fparts_list = (list(unique_fparts.index.values))
+		fpart_colors = plt.cm.Pastel1(np.linspace(0, 1, len(fparts_list)))
+		bars_width = 0.24
+		spare_width = (1 - bars_width*3)/2
 
-		columns = (list(unique_fparts.index.values))
-		index = np.arange(len(columns)) + 0.3
-		y_offset = np.zeros(len(columns))
-		bar_width = 0.4
-		rows = ['longs_usd_value', 'longs_funded_usd' ]
+		# long_bar_colors = plt.cm.GnBu(np.linspace(1, 1, len(elements_long)))
+		long_y_offset = np.zeros(len(fparts_list))
+
 		# 'shorts_usd_value','shorts_funded_usd']
-		colors = plt.cm.GnBu(np.linspace(0.2, 0.8, len(rows)))
 
-		data = []
-		cell_text = []
-		for columnname in rows:
-			row = []
-			ct_column = []
-			for fpart in columns:
-				# pprint('{} - {} - {}'.format(columnname,fpart, unique_fparts.loc[fpart][columnname]))
-				row.append( unique_fparts.loc[fpart][columnname] )
-				ct_column.append( "{0:,.0f}".format(unique_fparts.loc[fpart][columnname]) ) 
+		row_labels = [ 'Net long $','Longs P/L ▲▼', 'Net Shorts', 'Shorts P/L ▲▼', 'Sum Net Long-Short','USD Volume']
+		green_colors = plt.cm.Greens(np.linspace(0.4, 0.86, 4))
+		red_colors = plt.cm.Reds(np.linspace(0.4, 0.8, 4))
+		purple_colors = plt.cm.Purples(np.linspace(0.4, 0.8, 4))
+		oranges_colors = plt.cm.Oranges(np.linspace(0.4, 0.8, 4))
+		row_colors = np.asarray([
+			green_colors[0],
+			green_colors[2],
+			red_colors[0],
+			red_colors[2],
+			purple_colors[1],
+			oranges_colors[1],
+		])
 
-			data.append(row)
-			cell_text.append(ct_column)
+
+		cell_text = [[ [] for i in range(len(fparts_list)) ] for q in range(len(row_labels))]
+		colors = [[ [] for i in range(len(fparts_list)) ] for q in range(len(row_labels))]
+		data = [ [ [] for i in range(len(fparts_list)) ] for q in range(len(row_labels)) ]
+
+		for idx,fpart in enumerate(fparts_list):
+
+			tdata = unique_fparts.loc[fpart]
+
+			# Longs
+			longs_usd_value = tdata['longs_usd_value']
+			longs_usd_value_formatted = "${0:,.0f}".format(longs_usd_value)
+			data[0][idx] = longs_usd_value
+			cell_text[0][idx] = longs_usd_value_formatted
+
+			long_delta = tdata['longs_usd_value'] - tdata['longs_funded_usd']
+			long_delta_formatted = "${0:,.0f}".format(long_delta)
+			data[1][idx] = long_delta ##############################################
+			cell_text[1][idx] = long_delta_formatted
+
+			# Shorts
+			shorts_usd_value = tdata['shorts_usd_value']
+			shorts_usd_value_formatted = "{0:,.0f}".format(shorts_usd_value)
+			data[2][idx] = shorts_usd_value
+			cell_text[2][idx] = shorts_usd_value_formatted
+
+			short_delta = tdata['shorts_usd_value'] - tdata['shorts_funded_usd']
+			short_delta_formatted = "${0:,.0f}".format(short_delta)
+			data[3][idx] = short_delta ##############################################
+			cell_text[3][idx] = short_delta_formatted
+
+			# Delta
+			delta = longs_usd_value - shorts_usd_value
+			delta_formatted = "${0:,.0f}".format(delta)
+			data[4][idx] = delta
+			cell_text[4][idx] = delta_formatted
+
+			# Volume
+			volume_usd = tdata['volume_usd']
+			volume_usd_formatted = "${0:,.0f}".format(volume_usd)
+			data[5][idx] = volume_usd
+			cell_text[5][idx] = volume_usd_formatted
+			
+
+			colors[0] = [ row_colors[0] for i in range(10) ]
+			colors[1] = [ row_colors[1] for i in range(10) ]
+			colors[2] = [ row_colors[2] for i in range(10) ]
+			colors[3] = [ row_colors[3] for i in range(10) ]
+			colors[4] = [ row_colors[4] for i in range(10) ]
+			colors[5] = [ row_colors[5] for i in range(10) ]
+
+
+		row_colors = np.asarray([
+			green_colors[0],
+			green_colors[2],
+			red_colors[0],
+			red_colors[2],
+			purple_colors[1],
+			oranges_colors[1],
+		])
 
 
 		ax1 = fig.add_axes(rect0, facecolor='#f6f6f6') 
 		ax1.margins(x=0,y=0)
-		ax1.margins(0.05)
-		# ax2.set_ylim(0, tmpdf.loc[tmpdf['GLOBAL:USD'].idxmax()]['GLOBAL:USD']*1.06)
-
-		n_rows = len(data)
-		for row in range(n_rows):
-			ax1.bar(index, data[row], bar_width, bottom=y_offset, color=colors[row])
-			y_offset = y_offset + data[row]
-
-
-		# Reverse colors and text labels to display the last value at the top.
-		colors = colors[::-1]
-		cell_text.reverse()
-
-
-		# Add a table at the bottom of the axes
-		rowlabels = ['Total Longs $ Value','Borrowed funds (in $)']
-		the_table = ax1.table(cellText=cell_text,
-		                      rowLabels=rowlabels,
-		                      rowColours=colors,
-		                      colLabels=columns,
-		                      loc='bottom',
-		                      bbox=[0.0,-0.2,1,0.2])
-		the_table.set_fontsize(16)
-
-		cellDict = the_table.get_celld()
-		for x in range(1, len(rowlabels)+1):
-			cellDict[(x,-1)]._loc = 'right'
-
-
+		ax1.margins(x=0,y=0.05)
+		ax1.set_xticks([])
+		ax1.set_xlim(-spare_width,len(fparts_list)-spare_width)
 		ax1.set_ylabel("USD Value", fontsize=10)
 		ax1.yaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter('{x:,.0f}'))
-		ax1.set_xticks([])
+		ax1t = ax1.twinx()
+		ax1t.margins(x=0,y=0.05)
+		ax1t.set_ylabel("USD Volume", fontsize=10)
+		ax1t.yaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter('{x:,.0f}'))
+		ax1t.spines['right'].set_color(oranges_colors[3])
+		ax1t.yaxis.label.set_color(oranges_colors[3])
+		ax1t.tick_params(axis='y', colors=oranges_colors[3])
 
+
+		pdata = {
+			'longs'  : { 
+				'dkeys': [0,1],
+				'axis': ax1,
+				'colors': [green_colors[0], green_colors[2]]
+			},
+			'shorts' : { 
+				'dkeys': [2,3],
+				'axis': ax1,
+				'colors': [red_colors[0], red_colors[2]]
+			},
+			'delta'  : { 
+				'dkeys': [4],
+				'axis': ax1,
+				'colors': [purple_colors[1]]
+			},
+			'volume' : { 
+				'dkeys': [5],
+				'axis': ax1t,
+				'colors': [oranges_colors[1]]
+			}
+		}
+		bars_pos = np.arange(len(fparts_list)) - bars_width
+		for i,dkeys in pdata.items():
+			bars_pos = bars_pos + bars_width
+			long_y_offset = np.zeros(len(fparts_list))
+			color = [0.05137255, 0.35098039, 0.70588235, 1.        ]
+
+			if len(dkeys['dkeys']) >= 2:
+
+				color = dkeys['colors'][0]
+				barlist = dkeys['axis'].bar(bars_pos, data[dkeys['dkeys'][0]], bars_width, bottom=long_y_offset, color=color, alpha=1, zorder=0)
+
+				long_y_offset = long_y_offset + data[dkeys['dkeys'][0]] - data[dkeys['dkeys'][1]]
+				color = dkeys['colors'][1]
+				barlist = dkeys['axis'].bar(bars_pos, data[dkeys['dkeys'][1]], bars_width, bottom=long_y_offset, color=color, alpha=1, zorder=1)
+
+			else:
+				long_y_offset = np.zeros(len(fparts_list))
+				color = dkeys['colors'][0]
+				barlist = dkeys['axis'].bar(bars_pos, data[dkeys['dkeys'][0]], bars_width, bottom=long_y_offset, color=color, alpha=1, zorder=0)
+
+
+
+		the_table = ax1.table(cellText=cell_text,
+		                      cellColours=colors,
+		                      colLabels=fparts_list,
+		                      colColours=fpart_colors,
+		                      rowLabels=row_labels,
+		                      rowColours=row_colors,
+                        	cellLoc='center',
+		                      loc='bottom')
+		                      # bbox=[0.0,-0.2,1,0.2])
+		the_table.auto_set_font_size(False)
+		the_table.set_fontsize(12)
+		the_table.scale(1,2.5)
+
+		# cellDict = the_table.get_celld()
+		# for x in range(1, len(row_labels)+1):
+		# 	cellDict[(x,-1)]._loc = 'right'
+		# 	cellDict[(x,-1)].set_color('red')
+
+
+
+		def align_yaxis(ax1, ax2):
+			"""Align zeros of the two axes, zooming them out by same ratio"""
+			axes = (ax1, ax2)
+			extrema = [ax.get_ylim() for ax in axes]
+			tops = [extr[1] / (extr[1] - extr[0]) for extr in extrema]
+			# Ensure that plots (intervals) are ordered bottom to top:
+			if tops[0] > tops[1]:
+			    axes, extrema, tops = [list(reversed(l)) for l in (axes, extrema, tops)]
+
+			# How much would the plot overflow if we kept current zoom levels?
+			tot_span = tops[1] + 1 - tops[0]
+
+			b_new_t = extrema[0][0] + tot_span * (extrema[0][1] - extrema[0][0])
+			t_new_b = extrema[1][1] - tot_span * (extrema[1][1] - extrema[1][0])
+			axes[0].set_ylim(extrema[0][0], b_new_t)
+			axes[1].set_ylim(t_new_b, extrema[1][1])
+
+		align_yaxis(ax1, ax1t)
+
+
+		####################################################
+		# Rect 1 
 		ax2 = fig.add_axes(rect1, facecolor='#f6f6f6') 
+		ax2.set_xticks([])
+		ax2.set_yticks([])
 		ax2.margins(0.05)
-		ax2.xaxis.set_visible(False) 
-		ax2.yaxis.set_visible(False)
-		ax2.axis("off")
 
-		breakdowndf = unique_tickers[unique_tickers['fpart'].isin(columns)]
+
+		breakdowndf = unique_tickers[unique_tickers['fpart'].isin(fparts_list)]
 		breakdowndf = breakdowndf.groupby("ticker").last()
-		# breakdowndf = unique_tickers[[
-		# 	'ticker','fpart', 'lpart',
-		# 	'longs_total_cnt','longs_lpart_value','longs_usd_value',
-		# 	'longs_funded','longs_funded_lpart_value','longs_funded_usd',
-		# 	'shorts_total_cnt','shorts_lpart_value','shorts_usd_value',
-		# 	'shorts_funded','shorts_funded_fpart_value','shorts_funded_usd',
-		# ]]
-		# pprint(breakdowndf)
-		# pprint(breakdowndf.columns)
-		# exit()
+		breakdowndf = breakdowndf.reset_index()
+		breakdowndf = breakdowndf[ breakdowndf['longs_total_cnt'] > 0 ]
+
+		# bdowndf = pd.DataFrame([]
+		dfs = []
+		for fpart in fparts_list:
+			tmpdf = breakdowndf[ breakdowndf['fpart'] == fpart ]
+			tmpdf = tmpdf.sort_values('longs_usd_value', ascending=False )
+			dfs.append(tmpdf)
+			
+		bdowndf = pd.concat( dfs, axis=0 ) 
+		bdowndf = bdowndf.reset_index()
 
 		bcolumns = [
-			'Longs', 'Long margin utilization',
-			'Shorts', 'Short margin utilziation',
+			'Ticker', 
+			'Net Longs', 'Long margin usage', 'Longs P/L ▲▼',
+			'Net Shorts', 'Short margin usage', 'Shorts P/L ▲▼',
 			]
 		rowlabels = list(breakdowndf.index.values)
+		cpallett = { 
+			'heading': '#f7e4ad',
+			'row_green': '#b3ffb3',
+			'row_group_green': '#e6ffe6',
+			'row_red': '#ff8566',
+			'row_group_red': '#ffe6e6',
+			'row_color_blank1': '#f2f2f2',
+			'row_color_blank2': '#cccccc',
+		}
+
 		cell_text = []
-		for row in range(len(breakdowndf)):
-			tdata = breakdowndf.iloc[row]
+		cell_text.append(bcolumns)
+		colors = []
+		colors.append([ cpallett['heading'] for i in bcolumns ]) # 
+
+		for row in range(len(bdowndf)):
+
+			tdata = bdowndf.iloc[row]
 			trow = []
+			# Ticker 
+			trow.append(tdata['ticker'])
+
+			# Net Longs
 			longs_total_cnt = "{0:,.0f}".format(tdata['longs_total_cnt'])
 			longs_lpart_value = "{0:,.0f}".format(tdata['longs_lpart_value'])
 			longs_usd_value = "{0:,.0f}".format(tdata['longs_usd_value'])
-			trow.append( "{} longs worth {} {}, (${})".format( longs_total_cnt, longs_lpart_value, tdata['lpart'], longs_usd_value ) )
+			trow.append( "{} ⇝ worth {} {}, (${})".format( longs_total_cnt, longs_lpart_value, tdata['lpart'], longs_usd_value ) )
 			
+			# Long margin usage
 			longs_funded_usd = "{0:,.0f}".format(tdata['longs_funded_usd'])
-			trow.append( "{} worth of margin used to support longs".format(longs_funded_usd))
-
+			longs_funded_fpart = "{0:,.0f}".format(tdata['longs_funded_usd'] / tdata['fpart_usd_price'])
+			trow.append( "${} ⇜ worth {} {}".format(longs_funded_usd, longs_funded_fpart, tdata['fpart']))
+			
+			# Longs P/L ▲▼
+			long_delta = tdata['longs_usd_value'] - tdata['longs_funded_usd']
+			long_delta_formatted = "{0:,.0f}".format(long_delta)
+			if long_delta > 0:
+				prefix = '++'
+			else:
+				prefix = '--'
+			trow.append( "{}${}".format(prefix, long_delta_formatted) )
+			
+			# Net Shorts
 			shorts_total_cnt = "{0:,.0f}".format(tdata['shorts_total_cnt'])
 			shorts_lpart_value = "{0:,.0f}".format(tdata['shorts_lpart_value'])
 			shorts_usd_value = "{0:,.0f}".format(tdata['shorts_usd_value'])
-			trow.append( "{} shorts worth ${}".format(shorts_total_cnt, shorts_usd_value) )
-
+			trow.append( "{} ⇸ worth ${}".format(shorts_total_cnt, shorts_usd_value) )
+			
+			# Short margin usage
 			shorts_funded = "{0:,.0f}".format(tdata['shorts_funded'])
 			shorts_funded_usd = "{0:,.0f}".format(tdata['shorts_funded_usd'])
-			trow.append( "{} shorts are funded, worth ${}".format(shorts_funded, shorts_funded_usd))
+			trow.append( "{} ⇸ worth ${}".format(shorts_funded, shorts_funded_usd))
 
+			# Shorts P/L ▲▼
+			short_delta = tdata['shorts_usd_value'] - tdata['shorts_funded_usd']
+			short_delta_formatted = "{0:,.0f}".format(short_delta)
+			if short_delta > 0:
+				prefix = '++'
+			else:
+				prefix = '--'
+			trow.append( "{}${}".format(prefix, short_delta_formatted) )
+
+			
 			cell_text.append(trow)
 
-		colors = plt.cm.GnBu(np.linspace(0.2, 0.8, len(rowlabels)))
+
+
+			if long_delta > 0:
+				row_color_longs = cpallett['row_group_green']
+				row_color_longs = fpart_colors[fparts_list.index(tdata['fpart'])]
+			else:
+				row_color_longs = cpallett['row_group_red']
+				row_color_longs = fpart_colors[fparts_list.index(tdata['fpart'])]
+
+			if short_delta > 0:
+				row_color_shorts = cpallett['row_group_green']
+				row_color_shorts = fpart_colors[fparts_list.index(tdata['fpart'])]
+			else:
+				row_color_shorts = cpallett['row_group_red']
+				row_color_shorts = fpart_colors[fparts_list.index(tdata['fpart'])]
+
+			crow = []
+			#Ticker 
+			crow.append(fpart_colors[fparts_list.index(tdata['fpart'])])
+			# Net Longs
+			crow.append(row_color_longs)
+			# Long margin usage
+			crow.append(row_color_longs)
+			# Longs P/L ▲▼
+			crow.append(row_color_longs)
+			# Net Shorts
+			crow.append(row_color_shorts)
+			# Short margin usage
+			crow.append(row_color_shorts)
+			# Shorts P/L ▲▼
+			crow.append(row_color_shorts)
+
+			colors.append(crow)
+
+		# for cell in the_table._cells:
+		# 	the_table._cells[cell].set_alpha(.5)
+
+		# colors = plt.cm.GnBu(np.linspace(0.2, 0.8, len(rowlabels)))
 
 		the_table2 = ax2.table(cellText=cell_text,
-		                      rowLabels=rowlabels,
-		                      rowColours=colors,
-		                      colLabels=bcolumns,
-		                      loc='bottom',
-		                      bbox=[0.0,0,1,0.6])
-		the_table2.set_fontsize(16)
-
-		cellDict = the_table2.get_celld()
-		for x in range(1, len(rowlabels)+1):
-			cellDict[(x,-1)]._loc = 'right'
+		                      # rowColours=colors,
+		                      # colLabels=bcolumns,
+		                      cellColours=colors,
+		                      # loc='bottom',
+		                      bbox=[0.0,0.0,1,1])
+		# the_table2.auto_set_font_size(False)
+		# the_table2.set_fontsize(10)
+		the_table2.auto_set_column_width(col=list(range(len(bcolumns))))
 
 
+		# Area chart histogram of margin long usage over time
+		
+		# Area chart histogram of margin short usage over time
 
-		fname = PATH+'/charts_lvs.png'
+
+
+		fname = PATH+'/out_lvs.png'
 		plt.savefig(fname, pad_inches=1)
 		logger.info('Saved {}'.format(fname))
 
