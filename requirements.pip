@@ -3,3 +3,5 @@ pprint
 coloredlogs
 pyyaml
 pymongo
+pandas 
+matplotlib

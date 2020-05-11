@@ -10,6 +10,8 @@ import pandas as pd
 import numpy as np 
 import matplotlib.pyplot as plt
 import matplotlib 
+import base64
+from utils import ZmqRelay
 
 
 PATH 			 = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))
@@ -449,6 +451,34 @@ class ChartLVS():
 		fname = PATH+'/out_lvs.png'
 		plt.savefig(fname, pad_inches=1)
 		logger.info('Saved {}'.format(fname))
+
+
+		logger.info('Sending to pulse')
+		pulse_sender = ZmqRelay('bfxpulse', singular=True)
+		with open(fname, "rb") as image_file:
+			img = base64.b64encode(image_file.read())
+			img = img.decode("utf-8")
+			img = "data:image/png;base64,"+img
+
+			pdata =  {     
+				'title': 'Bitfinex Margin Usage',    
+				'content': "A full detailed breakdown of the highest volume tickers and their margin usage. All source code available on github: https://github.com/Whalepool/WPBFXData",   
+				'isPublic': 1, 
+				'isPin': 0, 
+				'attachments': [img]
+				# 'attachments': []
+			}
+
+			pulse_sender.send_msg(pdata)
+
+		logger.info('Sending to twitter')
+		twitter_sender = ZmqRelay('twitter', singular=True)
+		twdata = { 
+			'msg': "Bitfinex \"Open Interest\" / Margin utilization. The highest volume tickers, All source code available on github: https://github.com/Whalepool/WPBFXData",
+			'picture': fname 
+		}
+		twitter_sender.send_msg( twdata )
+
 
 		exit()
 
