@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib 
 import base64
 from utils import ZmqRelay
+from datetime import datetime 
 
 
 PATH 			 = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))
@@ -25,14 +26,13 @@ coloredlogs.install( level=config['LOGGING_LEVEL'], logger=logger, fmt=config['L
 
 
 class ChartLVS():
-	def __init__(self, argtickers):
+	def __init__(self, args):
 
 		self.mclient 	= MongoClient(config['MONGO_CONNECTION_STRING'])
 		self.db 			= self.mclient.bfxstats_new
 
 		logger.info('Querying ticker_data')
 		query = list(self.db['ticker_data'].find())
-
 
 		ticker_data =  pd.DataFrame(query)
 		ticker_data['timestamp'] = pd.to_datetime(ticker_data['timestamp'])
@@ -100,7 +100,7 @@ class ChartLVS():
 
 		logger.info('Making chart')
 		fig = plt.figure(facecolor='black', figsize=(18, 20), dpi=100, constrained_layout=False)
-		plt.suptitle('Bitfinex Leverage Usage ~ by whalepool.io', fontsize=18, fontweight='bold')
+		plt.suptitle('Bitfinex Leverage Usage ~ {} ~ by whalepool.io'.format(datetime.utcnow().replace(microsecond=0, second=0)), fontsize=18, fontweight='bold')
 
 		plot_left = 0.1
 		plot_width = 0.8 
@@ -453,31 +453,33 @@ class ChartLVS():
 		logger.info('Saved {}'.format(fname))
 
 
-		logger.info('Sending to pulse')
-		pulse_sender = ZmqRelay('bfxpulse', singular=True)
-		with open(fname, "rb") as image_file:
-			img = base64.b64encode(image_file.read())
-			img = img.decode("utf-8")
-			img = "data:image/png;base64,"+img
+		if args.pulse == True: 
+			logger.info('Sending to pulse')
+			pulse_sender = ZmqRelay('bfxpulse', singular=True)
+			with open(fname, "rb") as image_file:
+				img = base64.b64encode(image_file.read())
+				img = img.decode("utf-8")
+				img = "data:image/png;base64,"+img
 
-			pdata =  {     
-				'title': 'Bitfinex Margin Usage',    
-				'content': "A full detailed breakdown of the highest volume tickers and their margin usage. All source code available on github: https://github.com/Whalepool/WPBFXData",   
-				'isPublic': 1, 
-				'isPin': 0, 
-				'attachments': [img]
-				# 'attachments': []
+				pdata =  {     
+					'title': 'Bitfinex Margin Usage',    
+					'content': "A full detailed breakdown of the highest volume tickers and their margin usage. \nAll source code available on github: https://github.com/Whalepool/WPBFXData",   
+					'isPublic': 1, 
+					'isPin': 0, 
+					'attachments': [img]
+					# 'attachments': []
+				}
+
+				pulse_sender.send_msg(pdata)
+
+		if args.twitter == True: 
+			logger.info('Sending to twitter')
+			twitter_sender = ZmqRelay('twitter', singular=True)
+			twdata = { 
+				'msg': "Bitfinex \"Open Interest\" / Margin utilization. The highest volume tickers, \nAll source code available on github: https://github.com/Whalepool/WPBFXData\n\n$ETHUSD $BTCUSD",
+				'picture': fname 
 			}
-
-			pulse_sender.send_msg(pdata)
-
-		logger.info('Sending to twitter')
-		twitter_sender = ZmqRelay('twitter', singular=True)
-		twdata = { 
-			'msg': "Bitfinex \"Open Interest\" / Margin utilization. The highest volume tickers, All source code available on github: https://github.com/Whalepool/WPBFXData",
-			'picture': fname 
-		}
-		twitter_sender.send_msg( twdata )
+			twitter_sender.send_msg( twdata )
 
 
 		exit()
@@ -487,6 +489,10 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-t','--tickers', nargs='+', help='Ticker pairs to check data for', required=False)
+	parser.add_argument('-twitter', help='post to twitter', action='store_true')
+	parser.add_argument('-pulse', help='post to pulse', action='store_true')
+
 	args = parser.parse_args()
 
-	ChartLVS( args.tickers ) 
+
+	ChartLVS( args ) 

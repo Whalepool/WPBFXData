@@ -21,3 +21,17 @@ Saves
 python fetch_lvs.py
 python fetch_lvs.py -t ETHUSD BTCUSD 
 ```
+
+## Chart LvS Data, `chart_lvs.py`
+Queries data from mongo
+`chart_lvs.py`
+| Arg | Required | Type | Desc |
+| ------ | ------ | ------ | ------ |
+| -t | YES | A,B,C list | Query data for those tickers |
+| -twitter | - | | ZMQ data to twitter |
+| -pulse | - | | ZMQ data to pulse |
+
+**Example usage**
+```bash
+python chart_lvs.py
+```
